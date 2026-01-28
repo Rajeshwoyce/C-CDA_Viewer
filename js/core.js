@@ -11,6 +11,11 @@ $(document).ready(function(){
 		$('.cdaview:not([id="'+id_target+'"])').hide()
 		$('#'+id_target).show()
 	})
+	
+	// Hide input section and show viewer by default
+	$('#inputcda').hide();
+	$('#viewcda').show();
+	
 	init()
 	$('#ghrepos').click(function(){
 		ghowner=$('#ghowner').val()
@@ -30,6 +35,46 @@ $(document).ready(function(){
 	$('#fileInput').change(function(){
         startProcessing($("#fileInput"), populateResults, populateError, populateProgress);		
 	})
+	
+	// Get XML URL from URL parameters - handle URL-encoded AWS URLs
+	var xmlUrl = '';
+	
+	// Get the full search string
+	var fullSearch = window.location.search.substring(1); // Remove the leading ?
+	
+	// Extract everything after xmlUrl=
+	if(fullSearch.includes('xmlUrl=')) {
+		var startIndex = fullSearch.indexOf('xmlUrl=') + 7; // +7 for 'xmlUrl='
+		// Get everything from xmlUrl= to the end or to the next standalone parameter
+		var xmlUrlValue = fullSearch.substring(startIndex);
+		
+		// If the value is URL encoded, decode it
+		try {
+			xmlUrl = decodeURIComponent(xmlUrlValue);
+		} catch(e) {
+			// If decoding fails, use as-is
+			xmlUrl = xmlUrlValue;
+		}
+	}
+	
+	// Fallback: Try URLSearchParams for simple cases
+	if(!xmlUrl) {
+		var urlParams = new URLSearchParams(window.location.search);
+		xmlUrl = urlParams.get('xmlUrl') || '';
+	}
+	
+	// Log the extracted URL for debugging
+	console.log('Extracted xmlUrl:', xmlUrl);
+	console.log('Full search string:', fullSearch);
+	
+	// Auto-load XML from URL parameter or default AWS URL on page load
+	if(xmlUrl && xmlUrl.trim() !== '' && (xmlUrl.includes('http') || xmlUrl.includes('s3'))) {
+		console.log('Loading XML from provided URL');
+		loadXmlFromUrl(xmlUrl);
+	} else {
+		console.log('No valid xmlUrl found, loading default');
+		loadXmlFromUrl('https://hws-pipeline-uat.s3.us-east-1.amazonaws.com/files-uat/1769534334617_ToC_Ambulatory.xml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIASS6FW6S6GIXHVV5U%2F20260128%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260128T100720Z&X-Amz-Expires=86400&X-Amz-Signature=ad77df493fde21ce402c80b5d9a1c18844ea82d6e6ea45821c546d5876fcb0d5&X-Amz-SignedHeaders=host&x-id=GetObject');
+	}
 })
 function loadrepos(xhr){
 	var ojson=xhr;
@@ -503,6 +548,55 @@ function comparer(index) {
 function getCellValue(row, index){ return $(row).children('td').eq(index).html() }
 
 var xmload;
+function loadXmlFromUrl(url){
+	// Validate URL
+	if(!url || url.trim() === '') {
+		$('#viewcda').html('<div style="padding:20px;background:#ffebee;border:1px solid #ef5350;border-radius:4px;color:#c62828"><i class="fa fa-exclamation-circle"></i> <strong>No XML URL Provided</strong><br><br>Please provide an xmlUrl parameter in the URL.</div>');
+		return;
+	}
+	
+	// Show loading message
+	$('#viewcda').html('<div style="padding:20px;text-align:center;font-size:16px;color:#666"><i class="fa fa-spinner fa-spin"></i> Loading XML document from: <br><small style="word-break:break-all;color:#999">' + url.substring(0, 80) + '...</small></div>');
+	
+	xmload = new XMLHttpRequest();
+	xmload.onreadystatechange = function() {
+		if (xmload.readyState == 4) {
+			if (xmload.status == 200) {
+				$('#cdaxml').val(xmload.responseText);
+				cdaxml = xmload.responseText;
+				// Automatically transform and view the XML
+				$('#viewcda').html('');
+				new Transformation().setXml(cdaxml).setXslt('cda.xsl').transform("viewcda");
+				console.log('XML loaded successfully');
+			} else {
+				var errorMsg = 'HTTP Error ' + xmload.status;
+				if(xmload.status === 400) errorMsg += ' - Bad Request (possibly invalid URL format)';
+				if(xmload.status === 403) errorMsg += ' - Forbidden (access denied)';
+				if(xmload.status === 404) errorMsg += ' - Not Found (file does not exist)';
+				if(xmload.status === 0) errorMsg = 'CORS Error or Network Issue';
+				
+				console.log('Error loading XML:', errorMsg, 'URL:', url);
+				$('#viewcda').html('<div style="padding:20px;background:#ffebee;border:1px solid #ef5350;border-radius:4px;color:#c62828"><i class="fa fa-exclamation-circle"></i> <strong>Error Loading Document</strong><br><br>' + errorMsg + '<br><br><small style="word-break:break-all;color:#999">URL: ' + url + '</small><br><br>Please check:<br>1. URL is correct and accessible<br>2. CORS is enabled on the server<br>3. File is publicly accessible</div>');
+			}
+		}
+	};
+	xmload.onerror = function() {
+		console.log('Network error loading XML from:', url);
+		$('#viewcda').html('<div style="padding:20px;background:#ffebee;border:1px solid #ef5350;border-radius:4px;color:#c62828"><i class="fa fa-exclamation-circle"></i> <strong>Network Error</strong><br><br>Unable to load XML file. Please check:<br>1. URL is correct and accessible<br>2. CORS is enabled on the server<br>3. File is publicly accessible<br>4. Check browser console for more details<br><br><small style="word-break:break-all;color:#999">URL: ' + url + '</small></div>');
+	};
+	xmload.onabort = function() {
+		$('#viewcda').html('<div style="padding:20px;background:#ffebee;border:1px solid #ef5350;border-radius:4px;color:#c62828"><i class="fa fa-exclamation-circle"></i> <strong>Request Aborted</strong><br><br>The request was aborted. Please try again.</div>');
+	};
+	try{
+		xmload.open("GET", url, true);
+		xmload.send(null);
+	}
+	catch(e){
+		console.log('Exception:', e.message);
+		$('#viewcda').html('<div style="padding:20px;background:#ffebee;border:1px solid #ef5350;border-radius:4px;color:#c62828"><i class="fa fa-exclamation-circle"></i> <strong>Error</strong><br><br>' + e.message + '<br><br><small>Check browser console for details</small></div>');
+	}
+}
+
 function loadtextarea(fname){
 	xmload = new XMLHttpRequest();
 	xmload.onreadystatechange = loaded;

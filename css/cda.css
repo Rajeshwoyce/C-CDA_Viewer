@@ -226,3 +226,88 @@ tr.duplicate{
 textarea{
 	border:1px solid #999;
 }
+/* Improved UI Styling */
+.pure-g {
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+}
+
+#viewcda {
+	background: white;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	padding: 20px;
+	max-width: 100%;
+}
+
+.section {
+	background: white;
+	border: 1px solid #e0e0e0;
+	border-radius: 6px;
+	margin-bottom: 15px;
+	padding: 15px;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	transition: box-shadow 0.3s ease;
+}
+
+.section:hover {
+	box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+div.narr_table {
+	background: #f9f9f9;
+	border-radius: 6px;
+	overflow: hidden;
+	margin: 10px 0;
+}
+
+table {
+	border-collapse: separate;
+	border-spacing: 0;
+	width: 100%;
+}
+
+tr.narr_tr {
+	background-color: #ffffff;
+}
+
+tr.narr_tr:nth-child(even) {
+	background-color: #f9f9f9;
+}
+
+.narr_th {
+	background-color: #ffd700 !important;
+	font-weight: bold;
+	padding: 12px !important;
+	text-align: left;
+	border-color: #ffd700;
+}
+
+#viewcda td {
+	padding: 10px !important;
+	border-color: #e0e0e0;
+}
+
+p.secth3 {
+	color: #1f8dd6;
+	font-weight: bold;
+	margin-top: 15px;
+	margin-bottom: 10px;
+	border-left: 4px solid #1f8dd6;
+	padding-left: 10px;
+}
+
+.pure-button {
+	border-radius: 4px;
+	padding: 0.5em 1em;
+	transition: all 0.3s ease;
+}
+
+.pure-button:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+#cdabody {
+	padding: 0;
+}
